@@ -1,0 +1,29 @@
+BURN Clothing — Supabase + Xendit setup (TEST MODE FIRST)
+
+This patch repairs the broken Flutter Supabase environment variable names and adds safer checkout errors. It does not connect to your private Supabase account, deploy functions, or enable live payment automatically.
+
+1. Back up your existing BURN_Clothing project. Extract this ZIP into the PROJECT ROOT (C:\dev\BURN_Clothing), preserving the lib/ and supabase/ folders.
+2. Create or select your Supabase project. In SQL Editor, run supabase/schema.sql ONLY if your schema has not already been installed; the CREATE POLICY statements are not idempotent.
+3. Add real active products and shipping addresses. Demo items cannot be paid for.
+4. Install and log in to Supabase CLI, then link to your own project:
+   supabase login
+   supabase link --project-ref YOUR_PROJECT_REF
+5. Configure Supabase Edge Function secrets in your Supabase project:
+   XENDIT_SECRET_KEY = Xendit TEST secret key
+   XENDIT_CALLBACK_TOKEN = your Xendit callback verification token
+   Never put either secret in Dart, Git, or public files.
+6. Deploy:
+   supabase functions deploy create-checkout --use-api
+   supabase functions deploy xendit-webhook --no-verify-jwt --use-api
+   Ensure create-checkout JWT verification stays enabled; only the webhook has JWT verification disabled because it validates the Xendit callback token.
+7. Set Xendit invoice callback URL:
+   https://YOUR_PROJECT_REF.supabase.co/functions/v1/xendit-webhook
+8. Run Flutter (PowerShell, single line):
+   flutter run -d chrome --dart-define=SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co --dart-define=SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_OR_ANON_KEY
+9. Test with a real Supabase test user, saved address, active product, and Xendit test payment. Check Supabase orders table and function logs.
+
+Important:
+- Supabase stores orders; Xendit processes payments. A successful WebView return is NOT proof of payment. Only the verified Xendit webhook sets PAID.
+- WebView_flutter may not display Xendit checkout on Flutter Web. Test on Android; web needs a separate supported payment redirect flow.
+- The existing webhook does not decrement inventory atomically, and the cart is not cleared after verified payment. Do not use this starter for live customer payments until stock, webhook idempotency, and end-to-end tests are complete.
+- No real credentials are bundled in this patch.
